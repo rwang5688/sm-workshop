@@ -13,7 +13,7 @@
   },
   {
     "ParameterKey": "PrivateSubnetCIDR",
-    "ParameterValue": "192.168.20.0/16"
+    "ParameterValue": "192.168.20.0/24"
   }  
 ]
 
