@@ -1,8 +1,14 @@
 #!/bin/bash
-echo "create-sm-workshop-vpc in region=$1 and profile=$2"
-aws cloudformation create-stack --stack-name sm-workshop-vpc \
---template-body file://sm-workshop-vpc.yaml \
+export SM_WORKSHOP_SRC=$SM_WORKSHOP_HOME/src
+
+# print environment variables
+echo "SM_WORKSHOP_SRC=$SM_WORKSHOP_SRC"
+
+# execute
+echo "create-sm-workshop-component=$1 in region=$2 and profile=$3"
+aws cloudformation create-stack --stack-name sm-workshop-$1 \
+--template-body file://$SM_WORKSHOP_SRC/sm-workshop-$1.yaml \
 --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
---parameters file://sm-workshop-vpc-parameters.json \
---region $1 \
---profile $2
+--parameters file://sm-workshop-$1-parameters.json \
+--region $2 \
+--profile $3
