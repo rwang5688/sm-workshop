@@ -1,5 +1,11 @@
 #!/bin/bash
-echo "delete-sm-workshop-vpc in region=$1 and profile=$2"
-aws cloudformation delete-stack --stack-name sm-workshop-vpc \
---region $1 \
---profile $2
+export SM_WORKSHOP_SRC=$SM_WORKSHOP_HOME/src
+
+# print environment variables
+echo "SM_WORKSHOP_SRC=$SM_WORKSHOP_SRC"
+
+# execute
+echo "delete-sm-workshop-component=$1 in region=$2 and profile=$3"
+aws cloudformation delete-stack --stack-name sm-workshop-$1 \
+--region $2 \
+--profile $3
