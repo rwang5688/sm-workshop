@@ -1,76 +1,201 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Creates a VPC with no internet gateway and a private subnet.
+Description: Creates a VPC with Internet Gateway, NAT Gateway, and a Private Subnet
 
 Parameters:
   ProjectName:
+    ConstraintDescription: Project name that will be used as the prefix for all deployed resources
+    Default: sm-workshop
+    Description: Project name that will be used as the prefix for all deployed resources
     Type: String
-  VpcCIDR:
-    Type: String
-    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
-  PrivateSubnetCIDR:
-    Type: String
-    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
 
+  BucketNameSuffix:
+    ConstraintDescription: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
+    Default: _guid_
+    Description: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
+    Type: String
+
+  PrivateSubnet1CidrBlock:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Private Subnet 1 CIDR Block
+    Default: 10.192.20.0/24
+    Description: Private Subnet 1 CIDR Block
+    Type: String
+
+  PublicSubnet1CidrBlock:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Public Subnet 1 CIDR Block
+    Default: 10.192.10.0/24
+    Description: Public Subnet 1 CIDR Block
+    Type: String
+
+  VpcCidrBlock:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: VPC CIDR Block
+    Default: 10.192.0.0/16
+    Description: VPC CIDR Block
+    Type: String
 
 Resources:
   #########################
   #
-  # VPC AND SUBNET
+  # VPC AND SUBNETS
   #
   #########################
   VPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: !Ref VpcCIDR
-      EnableDnsSupport: true
+      CidrBlock: !Ref VpcCidrBlock
       EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
         - Key: Name
           Value: !Sub ${ProjectName}-vpc
 
-  PrivateSubnet:
+  PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      CidrBlock: !Ref PrivateSubnetCIDR
-      VpcId: !Ref VPC
-      AvailabilityZone: !Sub  "${AWS::Region}a"
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateSubnet1CidrBlock
+      MapPublicIpOnLaunch: false
       Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
         - Key: Name
-          Value: !Sub ${ProjectName}-private-subnet
-
-  SecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: security group for SageMaker notebook instance, training jobs and hosting endpoint
+          Value: !Sub ${ProjectName}-private-subnet-1
       VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub ${ProjectName}-security-group
 
-  SecurityGroupIngress:
-    Type: AWS::EC2::SecurityGroupIngress
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
     Properties:
-      IpProtocol: '-1'
-      GroupId: !Ref SecurityGroup
-      SourceSecurityGroupId: !Ref SecurityGroup
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnet1CidrBlock
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-public-subnet-1
+      VpcId: !Ref VPC
+
+  #########################
+  #
+  # INTERNET and NAT GATEWAYS
+  #
+  #########################
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-igw
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  NatGateway1EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-nat-gw-1-eip
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGateway1EIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-nat-gw-1
 
   #########################
   #
   # ROUTE TABLES
   #
   #########################
-
-  PrivateRouteTable:
+  PrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-private-rt-1
       VpcId: !Ref VPC
 
-  PrivateSubnetRouteTableAssociation:
+  DefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+      RouteTableId: !Ref PrivateRouteTable1
+
+  PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet1
 
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-public-rt
+      VpcId: !Ref VPC
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  #########################
+  #
+  # SAGEMAKER SECURITY GROUP
+  #
+  #########################
+  SageMakerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for SageMaker notebook instance, training jobs and hosting endpoint
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-sagemaker-sg
+      VpcId: !Ref VPC
+
+  SageMakerSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SageMakerSecurityGroup
+      IpProtocol: '-1'
+      SourceSecurityGroupId: !Ref SageMakerSecurityGroup
+  
   #########################
   #
   # VPC ENDPOINTS
@@ -80,92 +205,174 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow TLS for VPC Endpoint
-      VpcId: !Ref VPC
       Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
         - Key: Name
-          Value: !Sub ${ProjectName}-endpoint-security-group
+          Value: !Sub ${ProjectName}-vpce-sg
+      VpcId: !Ref VPC
 
-  EndpointSecurityGroupIngress:
+  VPCEndpointSecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      IpProtocol: tcp
       FromPort: 443
-      ToPort: 443
       GroupId: !Ref VPCEndpointSecurityGroup
-      SourceSecurityGroupId: !Ref SecurityGroup
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref SageMakerSecurityGroup
+      ToPort: 443
+
+  VPCEndpointCW:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: '*'
+            Effect: Allow
+            Principal: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.monitoring'
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-cw-monitoring
+      VpcEndpointType: Interface
+      VpcId: !Ref VPC
+
+  VPCEndpointCWL:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: '*'
+            Effect: Allow
+            Principal: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.logs'
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-cw-logs
+      VpcEndpointType: Interface
+      VpcId: !Ref VPC
+
+  VPCEndpointECR:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: '*'
+            Effect: Allow
+            Principal: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.dkr'
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-ecr
+      VpcEndpointType: Interface
+      VpcId: !Ref VPC
+
+  VPCEndpointECRAPI:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: '*'
+            Effect: Allow
+            Principal: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.api'
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-ecr-api
+      VpcEndpointType: Interface
+      VpcId: !Ref VPC
 
   VPCEndpointS3:
     Type: AWS::EC2::VPCEndpoint
     Properties:
-      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
-      VpcEndpointType: Gateway
-      VpcId: !Ref VPC
       PolicyDocument:
         !Sub |
         {
           "Version":"2012-10-17",
           "Statement":[{
-            "Effect":"Allow",
-            "Principal": "*",
             "Action":[
               "s3:GetObject",
-              "s3:PutObject",
-              "s3:ListBucket"
+              "s3:ListBucket",
+              "s3:PutObject"
             ],
-            "Resource": ["arn:aws:s3:::${ProjectName}-data-${AWS::AccountId}",
-            "arn:aws:s3:::${ProjectName}-models-${AWS::AccountId}",
-            "arn:aws:s3:::${ProjectName}-data-${AWS::AccountId}/*",
-            "arn:aws:s3:::${ProjectName}-models-${AWS::AccountId}/*"
+            "Effect":"Allow",
+            "Principal": "*",
+            "Resource": [
+              "arn:aws:s3:::${ProjectName}-data-${BucketNameSuffix}",
+              "arn:aws:s3:::${ProjectName}-data-${BucketNameSuffix}/*",
+              "arn:aws:s3:::${ProjectName}-models-${BucketNameSuffix}",
+              "arn:aws:s3:::${ProjectName}-models-${BucketNameSuffix}/*"
             ]
           }]
         }
       RouteTableIds:
-        - !Ref PrivateRouteTable
+        - !Ref PrivateRouteTable1
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-s3
+      VpcEndpointType: Gateway
+      VpcId: !Ref VPC
 
-  VPCEndpointS3Id:
-    Type: 'AWS::SSM::Parameter'
-    Properties:
-      Name: !Sub "ds-s3-endpoint-${ProjectName}-id"
-      Type: String
-      Value: !Ref VPCEndpointS3
-      Description: S3 VPC Endpoint ID
-
-  VPCEndpointSagemakerAPI:
+  VPCEndpointSageMakerAPI:
     Type: AWS::EC2::VPCEndpoint
     Properties:
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Effect: Allow
+          - Action: '*'
+            Effect: Allow
             Principal: '*'
-            Action: '*'
             Resource: '*'
-      VpcEndpointType: Interface
       PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
       SecurityGroupIds:
         - !Ref VPCEndpointSecurityGroup
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.api'
-      VpcId: !Ref VPC
-
-  VPCEndpointSageMakerRuntime:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action: '*'
-            Resource: '*'
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
       SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref VPCEndpointSecurityGroup
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.runtime'
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-sagemaker-api
+      VpcEndpointType: Interface
       VpcId: !Ref VPC
 
   VPCEndpointSageMakerNotebook:
@@ -178,13 +385,66 @@ Resources:
             Principal: '*'
             Action: '*'
             Resource: '*'
-      VpcEndpointType: Interface
       PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
       SecurityGroupIds:
         - !Ref VPCEndpointSecurityGroup
       ServiceName: !Sub 'aws.sagemaker.${AWS::Region}.notebook'
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-sagemaker-notebook
+      VpcEndpointType: Interface
+      VpcId: !Ref VPC
+
+  VPCEndpointSageMakerRuntime:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.runtime'
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-sagemaker-runtime
+      VpcEndpointType: Interface
+      VpcId: !Ref VPC
+
+  VPCEndpointSSM:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-ssm
+      VpcEndpointType: Interface
       VpcId: !Ref VPC
 
   VPCEndpointSTS:
@@ -197,112 +457,44 @@ Resources:
             Principal: '*'
             Action: '*'
             Resource: '*'
-      VpcEndpointType: Interface
       PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
       SecurityGroupIds:
         - !Ref VPCEndpointSecurityGroup
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sts'
-      VpcId: !Ref VPC
-
-  VPCEndpointSSM:
-    Type: 'AWS::EC2::VPCEndpoint'
-    Properties:
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
       SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref VPCEndpointSecurityGroup
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
-      VpcId: !Ref VPC
-
-  VPCEndpointCW:
-    Type: 'AWS::EC2::VPCEndpoint'
-    Properties:
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action: '*'
-            Resource: '*'
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-vpce-sts
       VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref VPCEndpointSecurityGroup
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.monitoring'
       VpcId: !Ref VPC
 
-  VPCEndpointCWL:
-    Type: 'AWS::EC2::VPCEndpoint'
+  #########################
+  #
+  # PARAMETER STORE PARAMETERS
+  #
+  #########################
+  ParamVPCEndpointS3Id:
+    Type: 'AWS::SSM::Parameter'
     Properties:
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action: '*'
-            Resource: '*'
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref VPCEndpointSecurityGroup
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.logs'
-      VpcId: !Ref VPC
-
-  VPCEndpointECR:
-    Type: 'AWS::EC2::VPCEndpoint'
-    Properties:
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action: '*'
-            Resource: '*'
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref VPCEndpointSecurityGroup
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.dkr'
-      VpcId: !Ref VPC
-
-  VPCEndpointECRAPI:
-    Type: 'AWS::EC2::VPCEndpoint'
-    Properties:
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal: '*'
-            Action: '*'
-            Resource: '*'
-      VpcEndpointType: Interface
-      PrivateDnsEnabled: true
-      SubnetIds:
-        - !Ref PrivateSubnet
-      SecurityGroupIds:
-        - !Ref VPCEndpointSecurityGroup
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.api'
-      VpcId: !Ref VPC
-
-
+      Name: !Sub "/sm-workshop/vpc/vpce-s3-id"
+      Type: String
+      Value: !Ref VPCEndpointS3
+      Description: S3 VPC Endpoint ID
 
 Outputs:
-  PrivateSubnet:
-    Value: !Ref PrivateSubnet
-  SecurityGroup:
-    Value: !Ref SecurityGroup
+  PrivateSubnet1:
+    Description: Private Subnet 1
+    Value: !Ref PrivateSubnet1
+
+  SageMakerSecurityGroup:
+    Description: SageMaker Security Group
+    Value: !Ref SageMakerSecurityGroup
+
   S3VPCEndpointId:
-    Description: The ID of the S3 VPC Endpoint
+    Description: S3 VPC Endpoint ID
     Value: !Ref VPCEndpointS3
     Export:
-      Name: !Sub "ds-s3-endpoint-${ProjectName}-id"
+      Name: !Sub "sm-workshop-vpc-vpce-s3-id"
