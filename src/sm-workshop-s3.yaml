@@ -1,10 +1,23 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Create S3 Buckets
+
 Parameters:
-  DataBucketName:
-    Type: String
   ProjectName:
+    ConstraintDescription: Project name that will be used as the prefix for all deployed resources
+    Default: sm-workshop
+    Description: Project name that will be used as the prefix for all deployed resources
     Type: String
+
+  BucketNameSuffix:
+    ConstraintDescription: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
+    Default: _guid_
+    Description: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
+    Type: String
+
+  S3VPCEndpointId:
+    Default: /sm-workshop/vpc/vpce-s3-id
+    Description: S3 VPC endpoint id
+    Type: AWS::SSM::Parameter::Value<String>
 
 Resources:
   KMSCMK:
@@ -38,8 +51,10 @@ Resources:
                   Fn::ImportValue: 
                     !Sub "ds-s3-endpoint-${ProjectName}-id"
       Tags:
-        - Key: Name
+        - Key: Project
           Value: !Ref ProjectName
+        - Key: Name
+          Value: !Ref
 
   KMSCMKAlias:
     Type: 'AWS::KMS::Alias'
@@ -60,7 +75,7 @@ Resources:
   DataBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref DataBucketName
+      BucketName: !Sub ${ProjectName}-data-${BucketNameSuffix}
       VersioningConfiguration:
         Status: Enabled
       AccessControl: Private
@@ -76,6 +91,45 @@ Resources:
               KMSMasterKeyID: !Ref KMSCMK
 
   DataBucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref DataBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:ListBucket'
+            Effect: Deny
+            Resource:
+              - !Sub "arn:aws:s3:::${DataBucket}/*"
+              - !Sub "arn:aws:s3:::${DataBucket}"
+            Principal: '*'
+            Condition:
+              StringNotEquals:
+                'aws:sourceVpce': 
+                  Fn::ImportValue: 
+                    !Sub "${ProjectName}-vpce-s3-id"
+
+  ModelsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${ProjectName}-models-${BucketNameSuffix}
+      VersioningConfiguration:
+        Status: Enabled
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: TRUE
+        BlockPublicPolicy: TRUE
+        IgnorePublicAcls: TRUE
+        RestrictPublicBuckets: TRUE
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: !Ref KMSCMK
+
+  ModelsBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
       Bucket: !Ref DataBucket

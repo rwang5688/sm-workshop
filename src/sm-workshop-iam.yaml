@@ -132,8 +132,6 @@ Resources:
       ManagedPolicyArns:
         - !Ref SageMakerNotebookInstancePolicy
 
-
-
   KMSKey:
     Type: AWS::KMS::Key
     Properties:
@@ -169,12 +167,12 @@ Resources:
               - kms:EnableKeyRotation
               - kms:ListResourceTags
             Resource: '*'
+
   KeyAlias:
     Type: AWS::KMS::Alias
     Properties:
       AliasName: !Sub alias/${KMSAlias}
       TargetKeyId: !Ref KMSKey  
-
 
 Outputs:
   ExecutionRoleARN:
