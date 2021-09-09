@@ -476,25 +476,39 @@ Resources:
   # PARAMETER STORE PARAMETERS
   #
   #########################
+  ParamPrivateSubnet1Id:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Private Subnet 1 Id
+      Name: /sm-workshop/vpc/privatee-subnet-1-id
+      Type: String
+      Value: !Ref PrivateSubnet1
+
+  ParamSageMakerSecurityGroupId:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: SageMaker Security Group Id
+      Name: /sm-workshop/vpc/sagemaker-sg-id
+      Type: String
+      Value: !Ref PrivateSubnet1
+
   ParamVPCEndpointS3Id:
     Type: 'AWS::SSM::Parameter'
     Properties:
-      Name: !Sub "/sm-workshop/vpc/vpce-s3-id"
+      Description: S3 VPC Endpoint Id
+      Name: /sm-workshop/vpc/vpce-s3-id
       Type: String
       Value: !Ref VPCEndpointS3
-      Description: S3 VPC Endpoint ID
 
 Outputs:
-  PrivateSubnet1:
-    Description: Private Subnet 1
+  PrivateSubnet1Id:
+    Description: Private Subnet 1 Id
     Value: !Ref PrivateSubnet1
 
-  SageMakerSecurityGroup:
-    Description: SageMaker Security Group
+  SageMakerSecurityGroupId:
+    Description: SageMaker Security Group Id
     Value: !Ref SageMakerSecurityGroup
 
-  S3VPCEndpointId:
-    Description: S3 VPC Endpoint ID
+  VPCEndpointS3Id:
+    Description: S3 VPC Endpoint Id
     Value: !Ref VPCEndpointS3
-    Export:
-      Name: !Sub "sm-workshop-vpc-vpce-s3-id"

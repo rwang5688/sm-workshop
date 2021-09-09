@@ -3,118 +3,185 @@ Description: Create IAM Roles for SageMaker Notebook Instance and KMS Key for En
 
 Parameters:
   ProjectName:
+    ConstraintDescription: Project name that will be used as the prefix for all deployed resources
+    Default: sm-workshop
+    Description: Project name that will be used as the prefix for all deployed resources
     Type: String
-  DataBucket:
-    Type: String
-  KMSAlias:
-    Type: String
-    Default: sagemaker-kms-example
+
+  DataBucketName:
+    Default: /sm-workshop/s3/data-bucket-name
+    Description: Data Bucket Name
+    Type: AWS::SSM::Parameter::Value<String>
+
+  ModelsBucketName:
+    Default: /sm-workshop/s3/models-bucket-name
+    Description: Models Bucket Name
+    Type: AWS::SSM::Parameter::Value<String>
 
 Resources:
+  #########################
+  #
+  # KMS CMK
+  #
+  #########################
+  EBSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS CMK for EBS volumes
+      Enabled: true
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: allow-root-access-to-key
+        Statement:
+          - Sid: allow-root-to-delegate-actions
+            Action:
+              - kms:CancelKeyDeletion
+              - kms:CreateAlias
+              - kms:CreateGrant
+              - kms:DeleteAlias
+              - kms:DescribeKey
+              - kms:Disable*
+              - kms:DisableKey
+              - kms:EnableKey
+              - kms:EnableKeyRotation
+              - kms:GetKeyPolicy
+              - kms:ListResourceTags
+              - kms:PutKeyPolicy
+              - kms:Revoke*
+              - kms:RevokeGrant
+              - kms:ScheduleKeyDeletion
+              - kms:TagResource
+              - kms:UnTagResource
+              - kms:UpdateAlias
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+            Resource: '*'
+      Tags:
+        - Key: Project
+          Value: !Sub ${ProjectName}
+        - Key: Name
+          Value: !Sub ${ProjectName}-ebs-key  
+
+  EBSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${ProjectName}-ebs-key"
+      TargetKeyId: !Ref EBSKey
+
+  #########################
+  #
+  # SAGEMAKER INSTANCE ROLE
+  #
+  #########################
   SageMakerNotebookInstancePolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      Description: SageMaker Notebook restricted access
+      Description: SageMaker Notebook instance policy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Sid: CloudWatchLogsAccess
-            Effect: Allow
             Action:
               - logs:CreateLogGroup
               - logs:CreateLogStream
               - logs:DescribeLogStreams
-              - logs:PutLogEvents
               - logs:GetLogEvents
+              - logs:PutLogEvents
+            Effect: Allow
             Resource:
               - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/sagemaker/*
               - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-stream:*
           - Sid: CloudWatchMetricsAccess
-            Effect: Allow
             Action:
+              - cloudwatch:DescribeAlarms
+              - cloudwatch:GetMetricData
               - cloudwatch:GetMetricStatistics
               - cloudwatch:ListMetrics
-              - cloudwatch:PutMetricData
-              - cloudwatch:GetMetricData
               - cloudwatch:PutMetricAlarm
-              - cloudwatch:DescribeAlarms
-            Resource: '*'
-          - Sid: KMSAccess
+              - cloudwatch:PutMetricData
             Effect: Allow
-            Action:
-              - kms:CreateGrant'
-              - 'kms:Decrypt'
-              - 'kms:DescribeKey'
-              - 'kms:Encrypt'
-              - 'kms:GenerateDataKey'
-              - 'kms:ListAliases'
             Resource: '*'
-          - Sid: S3Access
-            Effect: Allow
-            Action:
-              - s3:GetObject
-              - s3:PutObject
-              - s3:DeleteObject
-              - s3:ListBucket
-            Resource:
-              - !Sub arn:aws:s3:::${DataBucket}/*
           - Sid: ECRAccess
-            Effect: Allow
             Action:
+              - ecr:BatchCheckLayerAvailability
+              - ecr:BatchDeleteImage
+              - ecr:BatchGetImage
+              - ecr:CompleteLayerUpload
               - ecr:GetAuthorizationToken
               - ecr:GetDownloadUrlForLayer
-              - ecr:BatchGetImage
-              - ecr:BatchCheckLayerAvailability
-              - ecr:SetRepositoryPolicy
-              - ecr:CompleteLayerUpload
-              - ecr:BatchDeleteImage
-              - ecr:UploadLayerPart
               - ecr:InitiateLayerUpload
               - ecr:PutImage
+              - ecr:SetRepositoryPolicy
+              - ecr:UploadLayerPart
+            Effect: Allow
             Resource: 'arn:aws:ecr:*:*:repository/*sagemaker*'
-          - Sid: PassRole
-            Effect: Allow
-            Action:
-              - iam:PassRole
-            Resource: '*'
-            Condition:
-              StringEquals:
-                iam:PassedToService: sagemaker.amazonaws.com
-          - Sid: SageMakerAccess
-            Action:
-              - sagemaker:CreateTrainingJob
-              - sagemaker:CreateProcessingJob
-              - sagemaker:CreateModel
-              - sagemaker:CreateHyperParameterTuningJob
-            Resource: '*'
-            Effect: Deny
-            Condition:
-              'Null':
-                'sagemaker:VpcSubnets': 'true'
-          - Sid: SageMakerList
-            Action:
-              - sagemaker:Describe*
-              - sagemaker:List*
-            Resource: '*'
-            Effect: Allow
-          - Sid: SageMakerStudioSignedURLCreation
-            Action:
-              - sagemaker:CreateApp
-            Resource: '*'
-            Effect: Allow
           - Sid: EC2Access
-            Effect: Allow
             Action:
               - ec2:CreateNetworkInterface
               - ec2:CreateNetworkInterfacePermission
               - ec2:DeleteNetworkInterface
               - ec2:DeleteNetworkInterfacePermission
-              - ec2:DescribeNetworkInterfaces
-              - ec2:DescribeVpcs
               - ec2:DescribeDhcpOptions
-              - ec2:DescribeSubnets
+              - ec2:DescribeNetworkInterfaces
               - ec2:DescribeSecurityGroups
+              - ec2:DescribeSubnets
+              - ec2:DescribeVpcs
               - ec2:DescribeVpcEndpoints
+            Effect: Allow
+            Resource: '*'
+          - Sid: IAMPassRoleToSageMaker
+            Action:
+              - iam:PassRole
+            Condition:
+              StringEquals:
+                iam:PassedToService: sagemaker.amazonaws.com
+            Effect: Allow
+            Resource: '*'
+          - Sid: KMSAccess
+            Action:
+              - kms:CreateGrant
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey
+              - kms:ListAliases
+            Effect: Allow
+            Resource: '*'
+          - Sid: S3Access
+            Action:
+              - s3:DeleteObject
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:PutObject
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${DataBucketName}
+              - !Sub arn:aws:s3:::${DataBucketName}/*
+              - !Sub arn:aws:s3:::${ModelsBucketName}
+              - !Sub arn:aws:s3:::${ModelsBucketName}/*
+          - Sid: SageMakerAccess
+            Action:
+              - sagemaker:CreateHyperParameterTuningJob
+              - sagemaker:CreateModel
+              - sagemaker:CreateProcessingJob
+              - sagemaker:CreateTrainingJob
+            Effect: Deny
+            Condition:
+              'Null':
+                'sagemaker:VpcSubnets': true
+            Resource: '*'
+          - Sid: SageMakerList
+            Action:
+              - sagemaker:Describe*
+              - sagemaker:List*
+            Effect: Allow
+            Resource: '*'
+          - Sid: SageMakerStudioSignedURLCreation
+            Action:
+              - sagemaker:CreateApp
+            Effect: Allow
             Resource: '*'
 
   SageMakerNotebookInstanceRole:
@@ -123,59 +190,41 @@ Resources:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Effect: Allow
-            Principal:
-              Service: sagemaker.amazonaws.com
-            Action: sts:AssumeRole
-      Path: /
-      RoleName: !Sub ${ProjectName}-notebook-role
-      ManagedPolicyArns:
-        - !Ref SageMakerNotebookInstancePolicy
-
-  KMSKey:
-    Type: AWS::KMS::Key
-    Properties:
-      Description: "Generated KMS Key for sagemaker Notebook's EBS encryption"
-      EnableKeyRotation: true
-      Enabled: true
-      KeyPolicy:
-        Version: 2012-10-17
-        Id: allow-root-access-to-key
-        Statement:
-          - Sid: allow-root-to-delegate-actions
+          - Action: sts:AssumeRole
             Effect: Allow
             Principal:
-              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
-            Action:
-              - kms:DeleteAlias
-              - kms:DescribeKey
-              - kms:EnableKey
-              - kms:GetKeyPolicy
-              - kms:UpdateAlias
-              - kms:CreateAlias
-              - kms:GetKeyPolicy
-              - kms:CreateGrant
-              - kms:DisableKey
-              - kms:Revoke*
-              - kms:Disable*
-              - kms:CancelKeyDeletion
-              - kms:ScheduleKeyDeletion
-              - kms:PutKeyPolicy
-              - kms:RevokeGrant
-              - kms:TagResource
-              - kms:UnTagResource
-              - kms:EnableKeyRotation
-              - kms:ListResourceTags
-            Resource: '*'
+              Service: sagemaker.amazonaws.com
+      ManagedPolicyArns:
+        - !Ref SageMakerNotebookInstancePolicy
+      Path: /
+      RoleName: !Sub ${ProjectName}-notebook-instance-role
 
-  KeyAlias:
-    Type: AWS::KMS::Alias
+  #########################
+  #
+  # PARAMETER STORE PARAMETERS
+  #
+  #########################
+  ParamEBSKeyArn:
+    Type: 'AWS::SSM::Parameter'
     Properties:
-      AliasName: !Sub alias/${KMSAlias}
-      TargetKeyId: !Ref KMSKey  
+      Description: EBS Key ARN
+      Name: /sm-workshop/iam/ebs-key-arn
+      Type: String
+      Value: !GetAtt EBSKey.Arn
+
+  ParamSageMakerExecutionRoleArn:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: SageMaker Execution Role
+      Name: /sm-workshop/iam/sagemaker-execution-role-arn
+      Type: String
+      Value: !Ref SageMakerNotebookInstanceRole.Arn
 
 Outputs:
-  ExecutionRoleARN:
+  EBSKeyArn:
+    Description: EBS Key Arn
+    Value: !GetAtt EBSKey.Arn
+
+  SageMakerExecutionRoleArn:
+    Description: SageMaker Execution Role
     Value: !GetAtt SageMakerNotebookInstanceRole.Arn
-  KMSKeyArn:
-    Value: !GetAtt KMSKey.Arn
