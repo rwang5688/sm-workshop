@@ -39,21 +39,27 @@ Resources:
             Action: 'kms:*'
             Effect: Allow
             Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              AWS:
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/Admin
+              - !Sub arn:aws:iam::${AWS::AccountId}:root
             Resource: '*'
           - Sid: Allow access for Key Users
             Action:
-              - 'kms:Decrypt'
-              - 'kms:DescribeKey'
-              - 'kms:Encrypt'
-              - 'kms:GenerateDataKey'
-              - 'kms:ReEncrypt'
+              - kms:CreateGrant
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey
+              - kms:GenerateDataKeyWithoutPlainText
+              - kms:ReEncrypt
             Condition:
               StringNotEquals:
                 'aws:sourceVpce': !Ref VPCEndpointS3Id
             Effect: Allow
             Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+              AWS:
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/Admin
+              - !Sub arn:aws:iam::${AWS::AccountId}:root
             Resource: '*'
       Tags:
         - Key: Name

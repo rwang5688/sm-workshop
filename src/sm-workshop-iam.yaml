@@ -39,12 +39,14 @@ Resources:
               - kms:CancelKeyDeletion
               - kms:CreateAlias
               - kms:CreateGrant
+              - kms:Decrypt
               - kms:DeleteAlias
               - kms:DescribeKey
               - kms:Disable*
               - kms:DisableKey
               - kms:EnableKey
               - kms:EnableKeyRotation
+              - kms:GenerateDataKeyWithoutPlainText
               - kms:GetKeyPolicy
               - kms:ListResourceTags
               - kms:PutKeyPolicy
@@ -56,7 +58,9 @@ Resources:
               - kms:UpdateAlias
             Effect: Allow
             Principal:
-              AWS: !Sub arn:aws:iam::${AWS::AccountId}:root
+              AWS:
+              - !Sub arn:aws:iam::${AWS::AccountId}:role/Admin
+              - !Sub arn:aws:iam::${AWS::AccountId}:root
             Resource: '*'
       Tags:
         - Key: Name
