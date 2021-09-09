@@ -14,81 +14,81 @@ Parameters:
     Description: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
     Type: String
 
-  S3VPCEndpointId:
+  VPCEndpointS3Id:
     Default: /sm-workshop/vpc/vpce-s3-id
-    Description: S3 VPC endpoint id
+    Description: S3 VPC Endpoint Id
     Type: AWS::SSM::Parameter::Value<String>
 
 Resources:
-  KMSCMK:
+  #########################
+  #
+  # KMS CMK
+  #
+  #########################
+  S3Key:
     Type: 'AWS::KMS::Key'
     Properties:
-      Description: KMS key for S3 buckets
+      Description: KMS CMK for S3 buckets
+      Enabled: true
+      EnableKeyRotation: true
       KeyPolicy:
         Id: key-policy-1
         Version: 2012-10-17
         Statement:
           - Sid: Enable IAM User Permissions
+            Action: 'kms:*'
             Effect: Allow
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action: 'kms:*'
             Resource: '*'
           - Sid: Allow access for Key Users
+            Action:
+              - 'kms:Decrypt'
+              - 'kms:DescribeKey'
+              - 'kms:Encrypt'
+              - 'kms:GenerateDataKey'
+              - 'kms:ReEncrypt'
+            Condition:
+              StringNotEquals:
+                'aws:sourceVpce': !Ref VPCEndpointS3Id
             Effect: Allow
             Principal:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
-            Action:
-              - 'kms:Encrypt'
-              - 'kms:Decrypt'
-              - 'kms:ReEncrypt'
-              - 'kms:GenerateDataKey'
-              - 'kms:DescribeKey'
             Resource: '*'
-            Condition:
-              StringNotEquals:
-                'aws:sourceVpce': 
-                  Fn::ImportValue: 
-                    !Sub "ds-s3-endpoint-${ProjectName}-id"
       Tags:
         - Key: Project
-          Value: !Ref ProjectName
+          Value: !Sub ${ProjectName}
         - Key: Name
-          Value: !Ref
+          Value: !Sub ${ProjectName}-s3-key
 
-  KMSCMKAlias:
+  S3KeyAlias:
     Type: 'AWS::KMS::Alias'
     Properties:
-      AliasName: !Sub "alias/ds-kms-cmk-${ProjectName}"
-      TargetKeyId: !Ref KMSCMK
+      AliasName: !Sub "alias/${ProjectName}-s3-key"
+      TargetKeyId: !Ref S3Key
 
-  KMSCMKArn:
-    Type: 'AWS::SSM::Parameter'
-    Properties:
-      Name: !Sub "ds-kms-cmk-${ProjectName}-arn"
-      Type: String
-      Value: !GetAtt 
-        - KMSCMK
-        - Arn
-      Description: SageMakerExecRole ARN
-
+  #########################
+  #
+  # S3 BUCKETS
+  #
+  #########################
   DataBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${ProjectName}-data-${BucketNameSuffix}
-      VersioningConfiguration:
-        Status: Enabled
       AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref S3Key
+              SSEAlgorithm: 'aws:kms'
+      BucketName: !Sub ${ProjectName}-data-${BucketNameSuffix}
       PublicAccessBlockConfiguration:
         BlockPublicAcls: TRUE
         BlockPublicPolicy: TRUE
         IgnorePublicAcls: TRUE
         RestrictPublicBuckets: TRUE
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'aws:kms'
-              KMSMasterKeyID: !Ref KMSCMK
+      VersioningConfiguration:
+        Status: Enabled
 
   DataBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
@@ -98,61 +98,92 @@ Resources:
         Statement:
           - Action:
               - 's3:GetObject'
-              - 's3:PutObject'
               - 's3:ListBucket'
-            Effect: Deny
-            Resource:
-              - !Sub "arn:aws:s3:::${DataBucket}/*"
-              - !Sub "arn:aws:s3:::${DataBucket}"
-            Principal: '*'
+              - 's3:PutObject'
             Condition:
               StringNotEquals:
-                'aws:sourceVpce': 
-                  Fn::ImportValue: 
-                    !Sub "${ProjectName}-vpce-s3-id"
+                'aws:sourceVpce': !Ref VPCEndpointS3Id
+            Effect: Deny
+            Principal: '*'
+            Resource:
+              - !Sub "arn:aws:s3:::${DataBucket}"
+              - !Sub "arn:aws:s3:::${DataBucket}/*"
 
   ModelsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${ProjectName}-models-${BucketNameSuffix}
-      VersioningConfiguration:
-        Status: Enabled
       AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref S3Key
+              SSEAlgorithm: 'aws:kms'
+      BucketName: !Sub ${ProjectName}-models-${BucketNameSuffix}
       PublicAccessBlockConfiguration:
         BlockPublicAcls: TRUE
         BlockPublicPolicy: TRUE
         IgnorePublicAcls: TRUE
         RestrictPublicBuckets: TRUE
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'aws:kms'
-              KMSMasterKeyID: !Ref KMSCMK
+      VersioningConfiguration:
+        Status: Enabled
 
   ModelsBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
-      Bucket: !Ref DataBucket
+      Bucket: !Ref ModelsBucket
       PolicyDocument:
         Statement:
           - Action:
               - 's3:GetObject'
-              - 's3:PutObject'
               - 's3:ListBucket'
-            Effect: Deny
-            Resource:
-              - !Sub "arn:aws:s3:::${DataBucket}/*"
-              - !Sub "arn:aws:s3:::${DataBucket}"
-            Principal: '*'
+              - 's3:PutObject'
             Condition:
               StringNotEquals:
-                'aws:sourceVpce': 
-                  Fn::ImportValue: 
-                    !Sub "ds-s3-endpoint-${ProjectName}-id"
+                'aws:sourceVpce': !Ref VPCEndpointS3Id
+            Effect: Deny
+            Principal: '*'
+            Resource:
+              - !Sub "arn:aws:s3:::${ModelsBucket}/*"
+              - !Sub "arn:aws:s3:::${ModelsBucket}"
+
+  #########################
+  #
+  # PARAMETER STORE PARAMETERS
+  #
+  #########################
+  ParamDataBucketName:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Data Bucket Name
+      Name: /sm-workshop/s3/data-bucket-name
+      Type: String
+      Value: !Ref DataBucket
+
+  ParamModelsBucketName:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Models Bucket Name
+      Name: /sm-workshop/s3/models-bucket-name
+      Type: String
+      Value: !Ref ModelsBucket
+
+  ParamS3KeyArn:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: S3 Key ARN
+      Name: /sm-workshop/s3/s3-key-arn
+      Type: String
+      Value: !GetAtt S3Key.Arn
 
 Outputs:
-  DataBucket:
+  DataBucketName:
+    Description: Data Bucket Name
     Value: !Ref DataBucket
-  KMSCMK:
-    Description: KMS Key ARN for the data bucket
-    Value: !GetAtt KMSCMK.Arn
+
+  ModelsBucketName:
+    Description: Models Bucket Name
+    Value: !Ref ModelsBucket
+
+  S3KeyArn:
+    Description: S3 Key ARN
+    Value: !GetAtt S3Key.Arn

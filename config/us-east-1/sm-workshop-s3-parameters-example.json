@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "sm-workshop"
+  },
+  {
+    "ParameterKey": "DataBucketNameSuffix",
+    "ParameterValue": "_guid_"
+  }
+]

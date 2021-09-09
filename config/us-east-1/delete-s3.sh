@@ -1,2 +1,2 @@
 #!/bin/bash
-delete-sm-workshop-comp.sh key us-east-1 default
+delete-sm-workshop-comp.sh s3 us-east-1 default

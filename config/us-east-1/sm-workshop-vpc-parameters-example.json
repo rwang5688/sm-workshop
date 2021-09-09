@@ -8,12 +8,15 @@
     "ParameterValue": "_guid_"
   },
   {
-    "ParameterKey": "VpcCIDR",
-    "ParameterValue": "192.168.0.0/16"
+    "ParameterKey": "PrivateSubnet1CidrBlock",
+    "ParameterValue": "192.168.20.0/24"
   },
   {
-    "ParameterKey": "PrivateSubnetCIDR",
-    "ParameterValue": "192.168.20.0/24"
-  }  
+    "ParameterKey": "PublicSubnet1CidrBlock",
+    "ParameterValue": "192.168.10.0/24"
+  },
+  {
+    "ParameterKey": "VpcCIDR",
+    "ParameterValue": "192.168.0.0/16"
+  }
 ]
-
