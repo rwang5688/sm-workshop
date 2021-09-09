@@ -218,7 +218,7 @@ Resources:
       Description: SageMaker Execution Role
       Name: /sm-workshop/iam/sagemaker-execution-role-arn
       Type: String
-      Value: !Ref SageMakerNotebookInstanceRole.Arn
+      Value: !GetAtt SageMakerNotebookInstanceRole.Arn
 
 Outputs:
   EBSKeyArn:
