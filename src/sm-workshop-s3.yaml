@@ -56,8 +56,6 @@ Resources:
               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
             Resource: '*'
       Tags:
-        - Key: Project
-          Value: !Sub ${ProjectName}
         - Key: Name
           Value: !Sub ${ProjectName}-s3-key
 
