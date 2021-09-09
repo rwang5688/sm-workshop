@@ -1,2 +1,2 @@
 #!/bin/bash
-create-sm-workshop-comp.sh s3 us-east-1 default
+create-sm-workshop-comp.sh s3 us-east-1 default sm-workshop

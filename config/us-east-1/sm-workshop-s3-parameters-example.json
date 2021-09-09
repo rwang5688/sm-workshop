@@ -4,7 +4,7 @@
     "ParameterValue": "sm-workshop"
   },
   {
-    "ParameterKey": "DataBucketNameSuffix",
+    "ParameterKey": "BucketNameSuffix",
     "ParameterValue": "_guid_"
   }
 ]

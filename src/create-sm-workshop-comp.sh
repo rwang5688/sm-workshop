@@ -5,10 +5,11 @@ export SM_WORKSHOP_SRC=$SM_WORKSHOP_HOME/src
 echo "SM_WORKSHOP_SRC=$SM_WORKSHOP_SRC"
 
 # execute
-echo "create-sm-workshop-component=$1 in region=$2 and profile=$3"
+echo "create-sm-workshop-component=$1 in region=$2, profile=$3, project=$4"
 aws cloudformation create-stack --stack-name sm-workshop-$1 \
 --template-body file://$SM_WORKSHOP_SRC/sm-workshop-$1.yaml \
 --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND \
 --parameters file://sm-workshop-$1-parameters.json \
 --region $2 \
---profile $3
+--profile $3 \
+--tags Key="Project",Value="$4"

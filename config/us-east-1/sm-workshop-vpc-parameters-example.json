@@ -4,7 +4,7 @@
     "ParameterValue": "sm-workshop"
   },
   {
-    "ParameterKey": "DataBucketNameSuffix",
+    "ParameterKey": "BucketNameSuffix",
     "ParameterValue": "_guid_"
   },
   {
@@ -16,7 +16,7 @@
     "ParameterValue": "192.168.10.0/24"
   },
   {
-    "ParameterKey": "VpcCIDR",
+    "ParameterKey": "VpcCidrBlock",
     "ParameterValue": "192.168.0.0/16"
   }
 ]
