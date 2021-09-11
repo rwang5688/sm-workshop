@@ -281,25 +281,12 @@ Resources:
     Type: AWS::EC2::VPCEndpoint
     Properties:
       PolicyDocument:
-        !Sub |
-        {
-          "Version":"2012-10-17",
-          "Statement":[{
-            "Action":[
-              "s3:GetObject",
-              "s3:ListBucket",
-              "s3:PutObject"
-            ],
-            "Effect":"Allow",
-            "Principal": "*",
-            "Resource": [
-              "arn:aws:s3:::${ProjectName}-data-${BucketNameSuffix}",
-              "arn:aws:s3:::${ProjectName}-data-${BucketNameSuffix}/*",
-              "arn:aws:s3:::${ProjectName}-models-${BucketNameSuffix}",
-              "arn:aws:s3:::${ProjectName}-models-${BucketNameSuffix}/*"
-            ]
-          }]
-        }
+        Version: 2012-10-17
+        Statement:
+          - Action: '*'
+            Effect: Allow
+            Principal: '*'
+            Resource: '*'
       RouteTableIds:
         - !Ref PrivateRouteTable1
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
