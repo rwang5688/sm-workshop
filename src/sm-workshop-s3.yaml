@@ -96,17 +96,17 @@ Resources:
       Bucket: !Ref DataBucket
       PolicyDocument:
         Statement:
-          - Sid: Deny SSE-S3 Encryption
+          - Sid: Require SSE-KMS Encryption
             Action:
               - s3:PutObject
             Condition:
-              StringEquals:
-                's3:x-amz-server-side-encryption': 'AES256'
+              StringNotEquals:
+                's3:x-amz-server-side-encryption': 'aws:kms'
             Effect: Deny
             Principal: '*'
             Resource:
               - !Sub 'arn:aws:s3:::${DataBucket}/*'
-          - Sid: Require SSE-KMS Encryption
+          - Sid: Require SSE-KMS Encryption Key
             Action:
               - s3:PutObject
             Condition:
@@ -141,17 +141,17 @@ Resources:
       Bucket: !Ref ModelsBucket
       PolicyDocument:
         Statement:
-          - Sid: Deny SSE-S3 Encryption
+          - Sid: Require SSE-KMS Encryption
             Action:
               - s3:PutObject
             Condition:
-              StringEquals:
-                's3:x-amz-server-side-encryption': 'AES256'
+              StringNotEquals:
+                's3:x-amz-server-side-encryption': 'aws:kms'
             Effect: Deny
             Principal: '*'
             Resource:
               - !Sub 'arn:aws:s3:::${ModelsBucket}/*'
-          - Sid: Require SSE-KMS Encryption
+          - Sid: Require SSE-KMS Encryption Key
             Action:
               - s3:PutObject
             Condition:
