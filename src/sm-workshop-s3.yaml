@@ -64,7 +64,7 @@ Resources:
   ProjectKeyAlias:
     Type: 'AWS::KMS::Alias'
     Properties:
-      AliasName: !Sub "alias/${ProjectName}-key-${BucketNameSuffix}"
+      AliasName: !Sub 'alias/${ProjectName}-key-${BucketNameSuffix}'
       TargetKeyId: !Ref ProjectKey
 
   #########################
@@ -105,7 +105,7 @@ Resources:
             Effect: Deny
             Principal: '*'
             Resource:
-              - !Sub "arn:aws:s3:::${DataBucket}/*"
+              - !Sub 'arn:aws:s3:::${DataBucket}/*'
           - Sid: Require SSE-KMS Encryption
             Action:
               - s3:PutObject
@@ -115,7 +115,7 @@ Resources:
             Effect: Deny
             Principal: '*'
             Resource:
-              - !Sub "arn:aws:s3:::${DataBucket}/*"
+              - !Sub 'arn:aws:s3:::${DataBucket}/*'
 
   ModelsBucket:
     Type: AWS::S3::Bucket
@@ -150,7 +150,7 @@ Resources:
             Effect: Deny
             Principal: '*'
             Resource:
-              - !Sub "arn:aws:s3:::${ModelsBucket}/*"
+              - !Sub 'arn:aws:s3:::${ModelsBucket}/*'
           - Sid: Require SSE-KMS Encryption
             Action:
               - s3:PutObject
@@ -160,7 +160,7 @@ Resources:
             Effect: Deny
             Principal: '*'
             Resource:
-              - !Sub "arn:aws:s3:::${ModelsBucket}/*"
+              - !Sub 'arn:aws:s3:::${ModelsBucket}/*'
 
   #########################
   #
