@@ -97,19 +97,25 @@ Resources:
       Bucket: !Ref DataBucket
       PolicyDocument:
         Statement:
-          - Action:
-              - s3:DeleteObject
-              - s3:GetObject
-              - s3:ListAllMyBuckets
-              - s3:ListBucket
+          - Sid: Deny SSE-S3 Encryption
+            Action:
               - s3:PutObject
             Condition:
-              StringNotEquals:
-                'aws:sourceVpce': !Ref VPCEndpointS3Id
+              StringEquals:
+                's3:x-amz-server-side-encryption': 'AES256'
             Effect: Deny
             Principal: '*'
             Resource:
-              - !Sub "arn:aws:s3:::${DataBucket}"
+              - !Sub "arn:aws:s3:::${DataBucket}/*"
+          - Sid: Require SSE-KMS Encryption
+            Action:
+              - s3:PutObject
+            Condition:
+              StringNotLikeIfExists:
+                's3:x-amz-server-side-encryption-aws-kms-key-id': !GetAtt ProjectKey.Arn
+            Effect: Deny
+            Principal: '*'
+            Resource:
               - !Sub "arn:aws:s3:::${DataBucket}/*"
 
   ModelsBucket:
@@ -136,20 +142,26 @@ Resources:
       Bucket: !Ref ModelsBucket
       PolicyDocument:
         Statement:
-          - Action:
-              - s3:DeleteObject
-              - s3:GetObject
-              - s3:ListAllMyBuckets
-              - s3:ListBucket
+          - Sid: Deny SSE-S3 Encryption
+            Action:
               - s3:PutObject
             Condition:
-              StringNotEquals:
-                'aws:sourceVpce': !Ref VPCEndpointS3Id
+              StringEquals:
+                's3:x-amz-server-side-encryption': 'AES256'
             Effect: Deny
             Principal: '*'
             Resource:
               - !Sub "arn:aws:s3:::${ModelsBucket}/*"
-              - !Sub "arn:aws:s3:::${ModelsBucket}"
+          - Sid: Require SSE-KMS Encryption
+            Action:
+              - s3:PutObject
+            Condition:
+              StringNotLikeIfExists:
+                's3:x-amz-server-side-encryption-aws-kms-key-id': !GetAtt ProjectKey.Arn
+            Effect: Deny
+            Principal: '*'
+            Resource:
+              - !Sub "arn:aws:s3:::${ModelsBucket}/*"
 
   #########################
   #
