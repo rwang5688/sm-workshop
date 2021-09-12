@@ -78,7 +78,8 @@ Resources:
       AccessControl: Private
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
               KMSMasterKeyID: !Ref ProjectKey
               SSEAlgorithm: 'aws:kms'
       BucketName: !Sub ${ProjectName}-data-${BucketNameSuffix}
@@ -123,7 +124,8 @@ Resources:
       AccessControl: Private
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
               KMSMasterKeyID: !Ref ProjectKey
               SSEAlgorithm: 'aws:kms'
       BucketName: !Sub ${ProjectName}-models-${BucketNameSuffix}
