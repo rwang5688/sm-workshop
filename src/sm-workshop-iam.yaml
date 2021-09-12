@@ -28,7 +28,8 @@ Resources:
               - kms:DescribeKey
               - kms:Encrypt
               - kms:GenerateDataKey
-              - kms:ListAliases
+              - kms:GenerateDataKeyWithoutPlainText
+              - kms:ReEncrypt
             Effect: Allow
             Resource: '*'
           - Sid: S3Access
