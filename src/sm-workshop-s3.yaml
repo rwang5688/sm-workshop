@@ -59,12 +59,12 @@ Resources:
             Resource: '*'
       Tags:
         - Key: Name
-          Value: !Sub ${ProjectName}-key
+          Value: !Sub ${ProjectName}-key-${BucketNameSuffix}
 
   ProjectKeyAlias:
     Type: 'AWS::KMS::Alias'
     Properties:
-      AliasName: !Sub "alias/${ProjectName}-key"
+      AliasName: !Sub "alias/${ProjectName}-key-${BucketNameSuffix}"
       TargetKeyId: !Ref ProjectKey
 
   #########################
