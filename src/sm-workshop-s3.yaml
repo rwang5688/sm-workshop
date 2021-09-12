@@ -10,7 +10,6 @@ Parameters:
 
   BucketNameSuffix:
     ConstraintDescription: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
-    Default: _guid_
     Description: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
     Type: String
 
@@ -25,10 +24,10 @@ Resources:
   # KMS CMK
   #
   #########################
-  S3Key:
+  ProjectKey:
     Type: 'AWS::KMS::Key'
     Properties:
-      Description: KMS CMK for S3 buckets
+      Description: KMS CMK for project
       Enabled: true
       EnableKeyRotation: true
       KeyPolicy:
@@ -52,9 +51,6 @@ Resources:
               - kms:GenerateDataKey
               - kms:GenerateDataKeyWithoutPlainText
               - kms:ReEncrypt
-            Condition:
-              StringNotEquals:
-                'aws:sourceVpce': !Ref VPCEndpointS3Id
             Effect: Allow
             Principal:
               AWS:
@@ -63,13 +59,13 @@ Resources:
             Resource: '*'
       Tags:
         - Key: Name
-          Value: !Sub ${ProjectName}-s3-key
+          Value: !Sub ${ProjectName}-key-${BucketNameSuffix}
 
-  S3KeyAlias:
+  ProjectKeyAlias:
     Type: 'AWS::KMS::Alias'
     Properties:
-      AliasName: !Sub "alias/${ProjectName}-s3-key"
-      TargetKeyId: !Ref S3Key
+      AliasName: !Sub 'alias/${ProjectName}-key-${BucketNameSuffix}'
+      TargetKeyId: !Ref ProjectKey
 
   #########################
   #
@@ -82,8 +78,9 @@ Resources:
       AccessControl: Private
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              KMSMasterKeyID: !Ref S3Key
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !GetAtt ProjectKey.Arn
               SSEAlgorithm: 'aws:kms'
       BucketName: !Sub ${ProjectName}-data-${BucketNameSuffix}
       PublicAccessBlockConfiguration:
@@ -100,18 +97,26 @@ Resources:
       Bucket: !Ref DataBucket
       PolicyDocument:
         Statement:
-          - Action:
-              - 's3:GetObject'
-              - 's3:ListBucket'
-              - 's3:PutObject'
+          - Sid: Require SSE-KMS Encryption
+            Action:
+              - s3:PutObject
             Condition:
               StringNotEquals:
-                'aws:sourceVpce': !Ref VPCEndpointS3Id
+                's3:x-amz-server-side-encryption': 'aws:kms'
             Effect: Deny
             Principal: '*'
             Resource:
-              - !Sub "arn:aws:s3:::${DataBucket}"
-              - !Sub "arn:aws:s3:::${DataBucket}/*"
+              - !Sub 'arn:aws:s3:::${DataBucket}/*'
+          - Sid: Require SSE-KMS Encryption Key
+            Action:
+              - s3:PutObject
+            Condition:
+              StringNotLikeIfExists:
+                's3:x-amz-server-side-encryption-aws-kms-key-id': !GetAtt ProjectKey.Arn
+            Effect: Deny
+            Principal: '*'
+            Resource:
+              - !Sub 'arn:aws:s3:::${DataBucket}/*'
 
   ModelsBucket:
     Type: AWS::S3::Bucket
@@ -119,8 +124,9 @@ Resources:
       AccessControl: Private
       BucketEncryption:
         ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              KMSMasterKeyID: !Ref S3Key
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !GetAtt ProjectKey.Arn
               SSEAlgorithm: 'aws:kms'
       BucketName: !Sub ${ProjectName}-models-${BucketNameSuffix}
       PublicAccessBlockConfiguration:
@@ -137,18 +143,26 @@ Resources:
       Bucket: !Ref ModelsBucket
       PolicyDocument:
         Statement:
-          - Action:
-              - 's3:GetObject'
-              - 's3:ListBucket'
-              - 's3:PutObject'
+          - Sid: Require SSE-KMS Encryption
+            Action:
+              - s3:PutObject
             Condition:
               StringNotEquals:
-                'aws:sourceVpce': !Ref VPCEndpointS3Id
+                's3:x-amz-server-side-encryption': 'aws:kms'
             Effect: Deny
             Principal: '*'
             Resource:
-              - !Sub "arn:aws:s3:::${ModelsBucket}/*"
-              - !Sub "arn:aws:s3:::${ModelsBucket}"
+              - !Sub 'arn:aws:s3:::${ModelsBucket}/*'
+          - Sid: Require SSE-KMS Encryption Key
+            Action:
+              - s3:PutObject
+            Condition:
+              StringNotLikeIfExists:
+                's3:x-amz-server-side-encryption-aws-kms-key-id': !GetAtt ProjectKey.Arn
+            Effect: Deny
+            Principal: '*'
+            Resource:
+              - !Sub 'arn:aws:s3:::${ModelsBucket}/*'
 
   #########################
   #
@@ -171,13 +185,13 @@ Resources:
       Type: String
       Value: !Ref ModelsBucket
 
-  ParamS3KeyArn:
+  ParamProjectKeyArn:
     Type: 'AWS::SSM::Parameter'
     Properties:
-      Description: S3 Key ARN
-      Name: /sm-workshop/s3/s3-key-arn
+      Description: Project Key ARN
+      Name: /sm-workshop/s3/project-key-arn
       Type: String
-      Value: !GetAtt S3Key.Arn
+      Value: !GetAtt ProjectKey.Arn
 
 Outputs:
   DataBucketName:
@@ -188,6 +202,6 @@ Outputs:
     Description: Models Bucket Name
     Value: !Ref ModelsBucket
 
-  S3KeyArn:
-    Description: S3 Key ARN
-    Value: !GetAtt S3Key.Arn
+  ProjectKeyArn:
+    Description: Project Key ARN
+    Value: !GetAtt ProjectKey.Arn

@@ -8,12 +8,6 @@ Parameters:
     Description: Project name that will be used as the prefix for all deployed resources
     Type: String
 
-  BucketNameSuffix:
-    ConstraintDescription: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
-    Default: _guid_
-    Description: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
-    Type: String
-
   PrivateSubnet1CidrBlock:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: Private Subnet 1 CIDR Block
@@ -281,25 +275,12 @@ Resources:
     Type: AWS::EC2::VPCEndpoint
     Properties:
       PolicyDocument:
-        !Sub |
-        {
-          "Version":"2012-10-17",
-          "Statement":[{
-            "Action":[
-              "s3:GetObject",
-              "s3:ListBucket",
-              "s3:PutObject"
-            ],
-            "Effect":"Allow",
-            "Principal": "*",
-            "Resource": [
-              "arn:aws:s3:::${ProjectName}-data-${BucketNameSuffix}",
-              "arn:aws:s3:::${ProjectName}-data-${BucketNameSuffix}/*",
-              "arn:aws:s3:::${ProjectName}-models-${BucketNameSuffix}",
-              "arn:aws:s3:::${ProjectName}-models-${BucketNameSuffix}/*"
-            ]
-          }]
-        }
+        Version: 2012-10-17
+        Statement:
+          - Action: '*'
+            Effect: Allow
+            Principal: '*'
+            Resource: '*'
       RouteTableIds:
         - !Ref PrivateRouteTable1
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
