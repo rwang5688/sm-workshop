@@ -4,10 +4,6 @@
     "ParameterValue": "sm-workshop"
   },
   {
-    "ParameterKey": "BucketNameSuffix",
-    "ParameterValue": "_guid_"
-  },
-  {
     "ParameterKey": "PrivateSubnet1CidrBlock",
     "ParameterValue": "192.168.20.0/24"
   },
