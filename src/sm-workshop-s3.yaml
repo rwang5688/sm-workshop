@@ -10,7 +10,6 @@ Parameters:
 
   BucketNameSuffix:
     ConstraintDescription: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
-    Default: _guid_
     Description: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
     Type: String
 
