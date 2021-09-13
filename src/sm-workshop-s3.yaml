@@ -61,7 +61,6 @@ Resources:
               AWS:
               - !Sub arn:aws:iam::${AWS::AccountId}:role/Admin
               - !Sub arn:aws:iam::${AWS::AccountId}:root
-              - !Ref SageMakerExecutionRoleArn
             Resource: '*'
       Tags:
         - Key: Name
