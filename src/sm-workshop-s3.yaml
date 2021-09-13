@@ -31,7 +31,7 @@ Resources:
       Enabled: true
       EnableKeyRotation: true
       KeyPolicy:
-        Id: key-policy-1
+        Id: Key Policy
         Version: 2012-10-17
         Statement:
           - Sid: Enable IAM User Permissions
@@ -96,6 +96,8 @@ Resources:
     Properties:
       Bucket: !Ref DataBucket
       PolicyDocument:
+        Id: S3 Put Object Policy
+        Version: 2012-10-17
         Statement:
           - Sid: Require SSE-KMS Encryption
             Action:
@@ -142,6 +144,8 @@ Resources:
     Properties:
       Bucket: !Ref ModelsBucket
       PolicyDocument:
+        Id: S3 Put Object Policy
+        Version: 2012-10-17
         Statement:
           - Sid: Require SSE-KMS Encryption
             Action:
