@@ -13,6 +13,11 @@ Parameters:
     Description: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
     Type: String
 
+  SageMakerExecutionRoleArn:
+    Default: /sm-workshop/iam/sagemaker-execution-role-arn
+    Description: SageMaker Execution Role
+    Type: AWS::SSM::Parameter::Value<String>
+
   VPCEndpointS3Id:
     Default: /sm-workshop/vpc/vpce-s3-id
     Description: S3 VPC Endpoint Id
@@ -55,8 +60,8 @@ Resources:
             Principal:
               AWS:
               - !Sub arn:aws:iam::${AWS::AccountId}:role/Admin
-              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AWSPowerUserAccess*'
               - !Sub arn:aws:iam::${AWS::AccountId}:root
+              - !Ref SageMakerExecutionRoleArn
             Resource: '*'
       Tags:
         - Key: Name
