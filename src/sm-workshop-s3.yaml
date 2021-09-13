@@ -55,6 +55,7 @@ Resources:
             Principal:
               AWS:
               - !Sub arn:aws:iam::${AWS::AccountId}:role/Admin
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-reserved/sso.amazonaws.com/AWSReservedSSO_AWSPowerUserAccess*'
               - !Sub arn:aws:iam::${AWS::AccountId}:root
             Resource: '*'
       Tags:
