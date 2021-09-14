@@ -41,17 +41,17 @@ Resources:
               - s3:PutObject
             Effect: Allow
             Resource: '*'
-          - Sid: DenyNonVPCSageMakerAccess
-            Action:
-              - sagemaker:CreateHyperParameterTuningJob
-              - sagemaker:CreateModel
-              - sagemaker:CreateProcessingJob
-              - sagemaker:CreateTrainingJob
-            Effect: Deny
-            Condition:
-              'Null':
-                'sagemaker:VpcSubnets': true
-            Resource: '*'
+#          - Sid: DenyNonVPCSageMakerAccess
+#            Action:
+#              - sagemaker:CreateHyperParameterTuningJob
+#              - sagemaker:CreateModel
+#              - sagemaker:CreateProcessingJob
+#              - sagemaker:CreateTrainingJob
+#            Condition:
+#              'Null':
+#                'sagemaker:VpcSubnets': true
+#            Effect: Deny
+#            Resource: '*'
 
   SageMakerNotebookInstanceRole:
     Type: AWS::IAM::Role
