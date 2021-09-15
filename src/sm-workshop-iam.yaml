@@ -52,6 +52,11 @@ Resources:
 #                'sagemaker:VpcSubnets': true
 #            Effect: Deny
 #            Resource: '*'
+          - Sid: SSMAccess
+            Action:
+              - ssm:GetParameter
+            Effect: Allow
+            Resource: '*'
 
   SageMakerNotebookInstanceRole:
     Type: AWS::IAM::Role
