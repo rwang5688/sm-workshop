@@ -41,16 +41,21 @@ Resources:
               - s3:PutObject
             Effect: Allow
             Resource: '*'
-          - Sid: DenyNonVPCSageMakerAccess
+          - Sid: SageMakerDenyNonVPCAccess
             Action:
               - sagemaker:CreateHyperParameterTuningJob
               - sagemaker:CreateModel
               - sagemaker:CreateProcessingJob
               - sagemaker:CreateTrainingJob
-            Effect: Deny
             Condition:
               'Null':
                 'sagemaker:VpcSubnets': true
+            Effect: Deny
+            Resource: '*'
+          - Sid: SSMAccess
+            Action:
+              - ssm:GetParameter
+            Effect: Allow
             Resource: '*'
 
   SageMakerNotebookInstanceRole:
