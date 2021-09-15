@@ -391,7 +391,7 @@ Resources:
     Type: 'AWS::SSM::Parameter'
     Properties:
       Description: Private Subnet 1 Id
-      Name: /sm-workshop/vpc/privatee-subnet-1-id
+      Name: /sm-workshop/vpc/private-subnet-1-id
       Type: String
       Value: !Ref PrivateSubnet1
 
