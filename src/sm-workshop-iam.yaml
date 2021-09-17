@@ -32,15 +32,6 @@ Resources:
               - kms:ReEncrypt
             Effect: Allow
             Resource: '*'
-          - Sid: S3Access
-            Action:
-              - s3:DeleteObject
-              - s3:GetObject
-              - s3:ListAllMyBuckets
-              - s3:ListBucket
-              - s3:PutObject
-            Effect: Allow
-            Resource: '*'
           - Sid: SageMakerDenyNonVPCAccess
             Action:
               - sagemaker:CreateHyperParameterTuningJob
@@ -69,6 +60,7 @@ Resources:
             Principal:
               Service: sagemaker.amazonaws.com
       ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
         - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
         - arn:aws:iam::aws:policy/AmazonSageMakerFeatureStoreAccess
         - !Ref SageMakerNotebookInstancePolicy
