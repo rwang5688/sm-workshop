@@ -12,11 +12,6 @@ Parameters:
     ConstraintDescription: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
     Description: Bucket name suffix (e.g., global unique id); prefix is ${ProjectName}-${AssetType}-
     Type: String
-
-  SageMakerExecutionRoleArn:
-    Default: /sm-workshop/iam/sagemaker-execution-role-arn
-    Description: SageMaker Execution Role
-    Type: AWS::SSM::Parameter::Value<String>
    
 Resources:
   #########################
@@ -56,7 +51,6 @@ Resources:
               AWS:
               - !Sub arn:aws:iam::${AWS::AccountId}:role/Admin
               - !Sub arn:aws:iam::${AWS::AccountId}:root
-              - !Ref SageMakerExecutionRoleArn
             Resource: '*'
       Tags:
         - Key: Name
