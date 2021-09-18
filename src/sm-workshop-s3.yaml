@@ -35,15 +35,16 @@ Resources:
         Id: Key Policy
         Version: 2012-10-17
         Statement:
-          - Sid: Enable IAM User Permissions
+          - Sid: Enable access for key admins
             Action: 'kms:*'
             Effect: Allow
             Principal:
               AWS:
               - !Sub arn:aws:iam::${AWS::AccountId}:role/Admin
               - !Sub arn:aws:iam::${AWS::AccountId}:root
+              - !Ref SageMakerExecutionRoleArn
             Resource: '*'
-          - Sid: Allow access for Key Users
+          - Sid: Allow access for Key users
             Action:
               - kms:CreateGrant
               - kms:Decrypt
