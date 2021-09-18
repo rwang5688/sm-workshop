@@ -22,14 +22,7 @@ Resources:
         Version: 2012-10-17
         Statement:
           - Sid: KMSAccess
-            Action:
-              - kms:CreateGrant
-              - kms:Decrypt
-              - kms:DescribeKey
-              - kms:Encrypt
-              - kms:GenerateDataKey
-              - kms:GenerateDataKeyWithoutPlainText
-              - kms:ReEncrypt
+            Action: 'kms:*'
             Effect: Allow
             Resource: '*'
           - Sid: SageMakerDenyNonVPCAccess
