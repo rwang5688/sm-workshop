@@ -200,6 +200,14 @@ Resources:
       Type: String
       Value: !GetAtt ProjectKey.Arn
 
+  ParamProjectKeyId:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Project Key Id
+      Name: /sm-workshop/s3/project-key-id
+      Type: String
+      Value: !GetAtt ProjectKey.KeyId
+
 Outputs:
   DataBucketName:
     Description: Data Bucket Name
@@ -212,3 +220,7 @@ Outputs:
   ProjectKeyArn:
     Description: Project Key ARN
     Value: !GetAtt ProjectKey.Arn
+
+  ProjectKeyArn:
+    Description: Project Key Id
+    Value: !GetAtt ProjectKey.KeyId
