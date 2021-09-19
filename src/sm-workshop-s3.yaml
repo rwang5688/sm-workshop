@@ -94,34 +94,34 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
-  DataBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
-    Properties:
-      Bucket: !Ref DataBucket
-      PolicyDocument:
-        Id: S3 Put Object Policy
-        Version: 2012-10-17
-        Statement:
-          - Sid: Require SSE-KMS Encryption
-            Action:
-              - s3:PutObject
-            Condition:
-              StringNotEquals:
-                's3:x-amz-server-side-encryption': 'aws:kms'
-            Effect: Deny
-            Principal: '*'
-            Resource:
-              - !Sub 'arn:aws:s3:::${DataBucket}/*'
-          - Sid: Require SSE-KMS Encryption Key
-            Action:
-              - s3:PutObject
-            Condition:
-              StringNotLikeIfExists:
-                's3:x-amz-server-side-encryption-aws-kms-key-id': !GetAtt ProjectKey.Arn
-            Effect: Deny
-            Principal: '*'
-            Resource:
-              - !Sub 'arn:aws:s3:::${DataBucket}/*'
+#  DataBucketPolicy:
+#    Type: 'AWS::S3::BucketPolicy'
+#    Properties:
+#      Bucket: !Ref DataBucket
+#      PolicyDocument:
+#        Id: S3 Put Object Policy
+#        Version: 2012-10-17
+#        Statement:
+#          - Sid: Require SSE-KMS Encryption
+#            Action:
+#              - s3:PutObject
+#            Condition:
+#              StringNotEquals:
+#                's3:x-amz-server-side-encryption': 'aws:kms'
+#            Effect: Deny
+#            Principal: '*'
+#            Resource:
+#              - !Sub 'arn:aws:s3:::${DataBucket}/*'
+#          - Sid: Require SSE-KMS Encryption Key
+#            Action:
+#              - s3:PutObject
+#            Condition:
+#              StringNotLikeIfExists:
+#                's3:x-amz-server-side-encryption-aws-kms-key-id': !GetAtt ProjectKey.Arn
+#            Effect: Deny
+#            Principal: '*'
+#            Resource:
+#              - !Sub 'arn:aws:s3:::${DataBucket}/*'
 
   ModelsBucket:
     Type: AWS::S3::Bucket
@@ -200,6 +200,14 @@ Resources:
       Type: String
       Value: !GetAtt ProjectKey.Arn
 
+  ParamProjectKeyId:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Project Key Id
+      Name: /sm-workshop/s3/project-key-id
+      Type: String
+      Value: !GetAtt ProjectKey.KeyId
+
 Outputs:
   DataBucketName:
     Description: Data Bucket Name
@@ -212,3 +220,7 @@ Outputs:
   ProjectKeyArn:
     Description: Project Key ARN
     Value: !GetAtt ProjectKey.Arn
+
+  ProjectKeyId:
+    Description: Project Key Id
+    Value: !GetAtt ProjectKey.KeyId
