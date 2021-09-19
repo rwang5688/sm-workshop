@@ -94,14 +94,14 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
-  DataBucketPolicy:
-    Type: 'AWS::S3::BucketPolicy'
-    Properties:
-      Bucket: !Ref DataBucket
-      PolicyDocument:
-        Id: S3 Put Object Policy
-        Version: 2012-10-17
-        Statement:
+#  DataBucketPolicy:
+#    Type: 'AWS::S3::BucketPolicy'
+#    Properties:
+#      Bucket: !Ref DataBucket
+#      PolicyDocument:
+#        Id: S3 Put Object Policy
+#        Version: 2012-10-17
+#        Statement:
 #          - Sid: Require SSE-KMS Encryption
 #            Action:
 #              - s3:PutObject
