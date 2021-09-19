@@ -221,6 +221,6 @@ Outputs:
     Description: Project Key ARN
     Value: !GetAtt ProjectKey.Arn
 
-  ProjectKeyArn:
+  ProjectKeyId:
     Description: Project Key Id
     Value: !GetAtt ProjectKey.KeyId
