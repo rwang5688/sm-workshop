@@ -11,7 +11,7 @@ Parameters:
 Resources:
   #########################
   #
-  # SAGEMAKER INSTANCE ROLE
+  # SageMaker Instance Role
   #
   #########################
   SageMakerNotebookInstancePolicy:
@@ -62,7 +62,7 @@ Resources:
 
   #########################
   #
-  # PARAMETER STORE PARAMETERS
+  # Parameter Store Parameters
   #
   #########################
   ParamSageMakerExecutionRoleArn:

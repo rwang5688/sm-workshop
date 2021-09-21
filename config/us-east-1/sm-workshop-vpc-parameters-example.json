@@ -8,8 +8,16 @@
     "ParameterValue": "192.168.20.0/24"
   },
   {
+    "ParameterKey": "PrivateSubnet2CidrBlock",
+    "ParameterValue": "192.168.21.0/24"
+  },
+  {
     "ParameterKey": "PublicSubnet1CidrBlock",
     "ParameterValue": "192.168.10.0/24"
+  },
+  {
+    "ParameterKey": "PublicSubnet2CidrBlock",
+    "ParameterValue": "192.168.11.0/24"
   },
   {
     "ParameterKey": "VpcCidrBlock",

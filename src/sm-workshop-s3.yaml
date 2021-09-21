@@ -72,7 +72,7 @@ Resources:
 
   #########################
   #
-  # S3 BUCKETS
+  # S3 Buckets
   #
   #########################
   DataBucket:
@@ -173,7 +173,7 @@ Resources:
 
   #########################
   #
-  # PARAMETER STORE PARAMETERS
+  # Parameter Store Parameters
   #
   #########################
   ParamDataBucketName:
