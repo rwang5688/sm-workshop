@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Creates a VPC with Internet Gateway, NAT Gateway, and a Private Subnet
+Description: Creates a VPC with Internet Gateway, NAT Gateway, and Private and Public Subnets
 
 Parameters:
   ProjectName:
