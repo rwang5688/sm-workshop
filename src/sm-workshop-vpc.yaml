@@ -499,6 +499,22 @@ Resources:
       Type: String
       Value: !Ref PrivateSubnet2
 
+  ParamPublicSubnet1Id:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Public Subnet 1 Id
+      Name: /sm-workshop/vpc/public-subnet-1-id
+      Type: String
+      Value: !Ref PublicSubnet1
+
+  ParamPublicSubnet2Id:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Public Subnet 2 Id
+      Name: /sm-workshop/vpc/public-subnet-2-id
+      Type: String
+      Value: !Ref PublicSubnet2
+
   ParamSageMakerSecurityGroupId:
     Type: 'AWS::SSM::Parameter'
     Properties:
@@ -523,6 +539,14 @@ Outputs:
   PrivateSubnet2Id:
     Description: Private Subnet 2 Id
     Value: !Ref PrivateSubnet2
+
+  PublicSubnet1Id:
+    Description: Public Subnet 1 Id
+    Value: !Ref PublicSubnet1
+
+  PublicSubnet2Id:
+    Description: Public Subnet 2 Id
+    Value: !Ref PublicSubnet2
 
   SageMakerSecurityGroupId:
     Description: SageMaker Security Group Id
