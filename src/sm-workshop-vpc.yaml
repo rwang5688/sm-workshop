@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Creates a VPC with Internet Gateway, NAT Gateway, and a Private Subnet
+Description: Creates a VPC with Internet Gateway, NAT Gateway, and Private and Public Subnets
 
 Parameters:
   ProjectName:
@@ -11,28 +11,42 @@ Parameters:
   PrivateSubnet1CidrBlock:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: Private Subnet 1 CIDR Block
-    Default: 10.192.20.0/24
+    Default: 192.168.20.0/24
     Description: Private Subnet 1 CIDR Block
+    Type: String
+
+  PrivateSubnet2CidrBlock:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Private Subnet 2 CIDR Block
+    Default: 192.168.21.0/24
+    Description: Private Subnet 2 CIDR Block
     Type: String
 
   PublicSubnet1CidrBlock:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: Public Subnet 1 CIDR Block
-    Default: 10.192.10.0/24
+    Default: 192.168.10.0/24
     Description: Public Subnet 1 CIDR Block
+    Type: String
+
+  PublicSubnet2CidrBlock:
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: Public Subnet 2 CIDR Block
+    Default: 192.168.11.0/24
+    Description: Public Subnet 2 CIDR Block
     Type: String
 
   VpcCidrBlock:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: VPC CIDR Block
-    Default: 10.192.0.0/16
+    Default: 192.168.0.0/16
     Description: VPC CIDR Block
     Type: String
 
 Resources:
   #########################
   #
-  # VPC AND SUBNETS
+  # VPC and Subnets
   #
   #########################
   VPC:
@@ -56,6 +70,17 @@ Resources:
           Value: !Sub ${ProjectName}-private-subnet-1
       VpcId: !Ref VPC
 
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateSubnet2CidrBlock
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-private-subnet-2
+      VpcId: !Ref VPC
+
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -67,9 +92,20 @@ Resources:
           Value: !Sub ${ProjectName}-public-subnet-1
       VpcId: !Ref VPC
 
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnet2CidrBlock
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-public-subnet-2
+      VpcId: !Ref VPC
+
   #########################
   #
-  # INTERNET and NAT GATEWAYS
+  # Internet and NAT Gateways
   #
   #########################
   InternetGateway:
@@ -94,6 +130,15 @@ Resources:
         - Key: Name
           Value: !Sub ${ProjectName}-nat-gw-1-eip
 
+  NatGateway2EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-nat-gw-2-eip
+
   NatGateway1:
     Type: AWS::EC2::NatGateway
     Properties:
@@ -103,9 +148,18 @@ Resources:
         - Key: Name
           Value: !Sub ${ProjectName}-nat-gw-1
 
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGateway2EIP.AllocationId
+      SubnetId: !Ref PublicSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-nat-gw-2
+
   #########################
   #
-  # ROUTE TABLES
+  # Route Tables
   #
   #########################
   PrivateRouteTable1:
@@ -129,6 +183,27 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable1
       SubnetId: !Ref PrivateSubnet1
 
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-private-rt-2
+      VpcId: !Ref VPC
+
+  DefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2
+      RouteTableId: !Ref PrivateRouteTable2
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateSubnet2
+
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -151,9 +226,15 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnet1
 
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
   #########################
   #
-  # SAGEMAKER SECURITY GROUP
+  # SageMaker Security Group
   #
   #########################
   SageMakerSecurityGroup:
@@ -174,7 +255,7 @@ Resources:
   
   #########################
   #
-  # VPC ENDPOINTS
+  # VPC Endpoint Security Group
   #
   #########################
   VPCEndpointSecurityGroup:
@@ -195,6 +276,11 @@ Resources:
       SourceSecurityGroupId: !Ref SageMakerSecurityGroup
       ToPort: 443
 
+  #########################
+  #
+  # VPC Endpoints
+  #
+  #########################
   VPCEndpointCW:
     Type: 'AWS::EC2::VPCEndpoint'
     Properties:
@@ -211,6 +297,7 @@ Resources:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.monitoring'
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       VpcEndpointType: Interface
       VpcId: !Ref VPC
 
@@ -230,6 +317,7 @@ Resources:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.logs'
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       VpcEndpointType: Interface
       VpcId: !Ref VPC
 
@@ -249,6 +337,7 @@ Resources:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.dkr'
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       VpcEndpointType: Interface
       VpcId: !Ref VPC
 
@@ -268,6 +357,7 @@ Resources:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.api'
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       VpcEndpointType: Interface
       VpcId: !Ref VPC
 
@@ -283,6 +373,7 @@ Resources:
             Resource: '*'
       RouteTableIds:
         - !Ref PrivateRouteTable1
+        - !Ref PrivateRouteTable2
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
       VpcEndpointType: Gateway
       VpcId: !Ref VPC
@@ -303,6 +394,7 @@ Resources:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.api'
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       VpcEndpointType: Interface
       VpcId: !Ref VPC
 
@@ -322,6 +414,7 @@ Resources:
       ServiceName: !Sub 'aws.sagemaker.${AWS::Region}.notebook'
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       VpcEndpointType: Interface
       VpcId: !Ref VPC
 
@@ -341,6 +434,7 @@ Resources:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.runtime'
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       VpcEndpointType: Interface
       VpcId: !Ref VPC
 
@@ -360,6 +454,7 @@ Resources:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       VpcEndpointType: Interface
       VpcId: !Ref VPC
 
@@ -379,12 +474,13 @@ Resources:
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sts'
       SubnetIds:
         - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       VpcEndpointType: Interface
       VpcId: !Ref VPC
 
   #########################
   #
-  # PARAMETER STORE PARAMETERS
+  # Parameter Store Parameters
   #
   #########################
   ParamPrivateSubnet1Id:
@@ -394,6 +490,30 @@ Resources:
       Name: /sm-workshop/vpc/private-subnet-1-id
       Type: String
       Value: !Ref PrivateSubnet1
+
+  ParamPrivateSubnet2Id:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Private Subnet 2 Id
+      Name: /sm-workshop/vpc/private-subnet-2-id
+      Type: String
+      Value: !Ref PrivateSubnet2
+
+  ParamPublicSubnet1Id:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Public Subnet 1 Id
+      Name: /sm-workshop/vpc/public-subnet-1-id
+      Type: String
+      Value: !Ref PublicSubnet1
+
+  ParamPublicSubnet2Id:
+    Type: 'AWS::SSM::Parameter'
+    Properties:
+      Description: Public Subnet 2 Id
+      Name: /sm-workshop/vpc/public-subnet-2-id
+      Type: String
+      Value: !Ref PublicSubnet2
 
   ParamSageMakerSecurityGroupId:
     Type: 'AWS::SSM::Parameter'
@@ -415,6 +535,18 @@ Outputs:
   PrivateSubnet1Id:
     Description: Private Subnet 1 Id
     Value: !Ref PrivateSubnet1
+
+  PrivateSubnet2Id:
+    Description: Private Subnet 2 Id
+    Value: !Ref PrivateSubnet2
+
+  PublicSubnet1Id:
+    Description: Public Subnet 1 Id
+    Value: !Ref PublicSubnet1
+
+  PublicSubnet2Id:
+    Description: Public Subnet 2 Id
+    Value: !Ref PublicSubnet2
 
   SageMakerSecurityGroupId:
     Description: SageMaker Security Group Id
