@@ -112,16 +112,16 @@ Resources:
             Principal: '*'
             Resource:
               - !Sub 'arn:aws:s3:::${DataBucket}/*'
-#          - Sid: Require SSE-KMS Encryption Key
-#            Action:
-#              - s3:PutObject
-#            Condition:
-#              StringNotLikeIfExists:
-#                's3:x-amz-server-side-encryption-aws-kms-key-id': !GetAtt ProjectKey.Arn
-#            Effect: Deny
-#            Principal: '*'
-#            Resource:
-#              - !Sub 'arn:aws:s3:::${DataBucket}/*'
+          - Sid: Require SSE-KMS Encryption Key
+            Action:
+              - s3:PutObject
+            Condition:
+              StringNotLikeIfExists:
+                's3:x-amz-server-side-encryption-aws-kms-key-id': !GetAtt ProjectKey.Arn
+            Effect: Deny
+            Principal: '*'
+            Resource:
+              - !Sub 'arn:aws:s3:::${DataBucket}/*'
 
   ModelsBucket:
     Type: AWS::S3::Bucket
